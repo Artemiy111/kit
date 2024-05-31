@@ -1,6 +1,6 @@
 import { db } from '$lib/server/db'
 import { users } from '$lib/server/db/schema'
-import { error, fail, redirect } from '@sveltejs/kit'
+import { fail, redirect } from '@sveltejs/kit'
 import { z } from 'zod'
 import bcrypt from 'bcrypt'
 import { eq } from 'drizzle-orm'
@@ -8,32 +8,25 @@ import { eq } from 'drizzle-orm'
 const registerSchema = z.object({
   name: z.string().min(3),
   password: z.string().min(3),
-  'repeat-password': z.string().min(3)
 })
 
 export const actions = {
-  register: async ({ request, url, cookies }) => {
+  'sign-in': async ({ request, url, cookies }) => {
     const redirectTo = url.searchParams.get('redirect-to')
     const raw = Object.fromEntries((await request.formData()).entries())
+    console.log(request)
     const parsed = registerSchema.safeParse(raw)
 
     if (!parsed.success) return fail(422, { success: false, message: parsed.error.issues[0].message })
-
     const data = parsed.data
-    if (data.password !== data['repeat-password']) return fail(422, { success: false, message: 'Passwords don\'t match' })
-
-    const passwordSalt = bcrypt.genSaltSync()
-    const passwordHash = bcrypt.hashSync(data.password, passwordSalt)
 
     const existing = await db.query.users.findFirst({ 'where': eq(users.name, data.name) })
-    if (existing) return fail(422, { success: false, message: 'User with this name is already exists' })
+    if (!existing) return fail(422, { success: false, message: 'The data was entered incorrectly' })
 
-    const created = await db.insert(users).values({
-      name: data.name,
-      passwordHash,
-      passwordSalt
-    }).returning()
-    cookies.set('user_id', created[0].id.toString(), { 'path': '/' })
+    const isValidPassword = bcrypt.compareSync(data.password, existing.passwordHash)
+    if (!isValidPassword) return fail(422, { success: false, message: 'The data was entered incorrectly' })
+
+    cookies.set('user_id', existing.id.toString(), { 'path': '/' })
     if (redirectTo) redirect(303, redirectTo)
     return { success: true }
   }

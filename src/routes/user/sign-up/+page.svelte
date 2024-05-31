@@ -3,8 +3,14 @@
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import { toast } from 'svelte-sonner';
+	const { form, data } = $props();
 
-	const { form } = $props();
+	$effect(() => {
+		if (!form) return;
+		if (form.success) toast('Аккаунт создан');
+		else toast('Ошибка');
+	});
 </script>
 
 <main class="container mt-16 flex flex-col">
@@ -20,7 +26,7 @@
 		<Input name="password" id="password" type="password" required />
 		<Label for="repeat-password">Повторите пароль</Label>
 		<Input name="repeat-password" id="repeat-password" type="password" required />
-		{#if form}
+		{#if form?.message}
 			<p class="col-span-2 rounded-md bg-red-100 p-2 text-red-500">
 				{form.message}
 			</p>

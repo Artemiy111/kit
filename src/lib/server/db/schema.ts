@@ -10,7 +10,7 @@ export const users = sqliteTable('users', {
 })
 
 export const messages = sqliteTable('messages', {
-  parentMessageId: text('id').references((): AnySQLiteColumn => messages.id),
+  parentMessageId: text('parent_message_id').references((): AnySQLiteColumn => messages.id),
   userId: integer('id').references(() => users.id),
   id: integer('id').primaryKey({ autoIncrement: true }),
   text: text('text').notNull().unique(),

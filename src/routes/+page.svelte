@@ -1,7 +1,7 @@
 <script lang="ts">
 	let { data } = $props();
 	import { Input } from '$lib/components/ui/input';
-	import * as Avatar from '$lib/components/ui/avatar/index.js';
+	import * as Avatar from '$lib/components/ui/avatar';
 
 	type Comment = {
 		postId: number;

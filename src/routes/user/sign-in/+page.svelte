@@ -2,18 +2,31 @@
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import { toast } from 'svelte-sonner';
+	const { form } = $props();
+
+	$effect(() => {
+		if (!form) return;
+		if (form.success) toast('Вход выполнен');
+		else toast('Не удалось войти в аккаунт');
+	});
 </script>
 
 <main class="container mt-16 flex flex-col">
 	<form
-		action="?/register"
+		action="?/sign-in"
 		method="POST"
 		class="grid max-w-[600px] grid-cols-[max-content,1fr] items-center gap-4 rounded-lg bg-slate-50 p-4"
 	>
 		<Label for="name">Ник</Label>
-		<Input id="name" />
+		<Input name="name" id="name" required />
 		<Label for="password">Пароль</Label>
-		<Input id="password" type="password" />
+		<Input name="password" id="password" type="password" required />
+		{#if form?.message}
+			<p class="col-span-2 rounded-md bg-red-100 p-2 text-red-500">
+				{form.message}
+			</p>
+		{/if}
 		<Button type="submit" class="col-span-2">Войти</Button>
 		<a href="/user/sign-up" class={buttonVariants({ variant: 'link' })}
 			>Нет аккаунта? Зарегистрироваться</a

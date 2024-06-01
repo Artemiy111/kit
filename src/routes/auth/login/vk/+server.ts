@@ -1,14 +1,14 @@
 import { redirect } from "@sveltejs/kit"
 import { generateState } from "arctic"
-import { github } from "$lib/server/auth"
+import { vk } from "$lib/server/auth"
 
 export async function GET({ cookies }) {
   const state = generateState()
-  const url = await github.createAuthorizationURL(state, {
+  const url = await vk.createAuthorizationURL(state, {
     'scopes': ['user:email']
   })
 
-  cookies.set("github_oauth_state", state, {
+  cookies.set("vk_oauth_state", state, {
     path: "/",
     secure: import.meta.env.PROD,
     httpOnly: true,

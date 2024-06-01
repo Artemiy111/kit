@@ -16,18 +16,6 @@
 	};
 
 	let comments: Comment[] = $state([]);
-
-	$effect(() => {
-		// console.log(data);
-		// new Promise(async (res) => {
-		// 	const result = await fetch('https://dummyjson.com/comments');
-		// 	const data = await result.json();
-		// 	comments = data.comments as Comment[];
-		// 	console.log(comments);
-		// 	res(1);
-		// });
-	});
-
 	let message = $state('');
 </script>
 

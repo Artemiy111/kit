@@ -7,7 +7,7 @@ import { userOauths, users, type UserDb } from '$lib/server/db/schema.js'
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
-  const storedState = cookies.get("github_oauth_state") ?? null
+  const storedState = cookies.get("vk_oauth_state") ?? null
 
   if (!code || !state || !storedState || state !== storedState) {
     return new Response(null, {
@@ -17,33 +17,24 @@ export async function GET({ url, cookies }) {
 
   try {
     const tokens = await github.validateAuthorizationCode(code)
-    const githubUserResponse = await fetch("https://api.github.com/user", {
+    const githubUserResponse = await fetch("https://api.vk.com/method/users.get", {
       headers: {
         Authorization: `Bearer ${tokens.accessToken}`
       }
     })
-    const githubUser: GitHubUser = await githubUserResponse.json()
-    const existingUserOauthGithub = await db.query.userOauths.findFirst({
+    const vkUser: GitHubUser = await githubUserResponse.json()
+    console.log(vkUser)
+    return new Response(null, { status: 200 })
+    const existingUserOauthVk = await db.query.userOauths.findFirst({
       where: and(
-        eq(userOauths.provider, 'github'),
-        eq(userOauths.providerUserId, String(githubUser.id))
-      ),
-      with: {
-        'user': {
-          'with': {
-            'oauths': true
-          }
-        }
-      }
+        eq(userOauths.provider, 'vk'),
+        eq(userOauths.providerUserId, String(vkUser.id))
+      )
     })
 
     // if user with connected oauth exists -> create new session
-    if (existingUserOauthGithub) {
-      const session = await lucia.createSession(existingUserOauthGithub.userId, {
-        email: existingUserOauthGithub.user.email,
-        username: existingUserOauthGithub.user.username,
-        providers: existingUserOauthGithub.user.oauths.map(o => o.provider)
-      })
+    if (existingUserOauthVk) {
+      const session = await lucia.createSession(existingUserOauthVk.userId, {})
       const sessionCookie = lucia.createSessionCookie(session.id)
       cookies.set(sessionCookie.name, sessionCookie.value, {
         path: ".",
@@ -62,42 +53,40 @@ export async function GET({ url, cookies }) {
         Authorization: `Bearer ${tokens.accessToken}`
       }
     })
-    const githubEmails: GithubEmail[] = await githubEmailResponse.json()
-    const primaryEmail = githubEmails.find(email => email.primary)
+    const vkEmails: GithubEmail[] = await githubEmailResponse.json()
+    const primaryEmail = vkEmails.find(email => email.primary)
 
     if (!primaryEmail) return new Response(null, { status: 400 })
 
     // if user with email matches github primary email -> merge github oauth with user
     // else create new user with github oauth
     let user: UserDb = null!
-    const existingUserWithGithubPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail.email) })
-    if (existingUserWithGithubPrimaryEmail) {
+    const existingUserWithVkPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail.email) })
+    if (existingUserWithVkPrimaryEmail) {
       db.insert(userOauths).values({
         'provider': 'github',
-        'providerUserId': String(githubUser.id),
-        'userId': existingUserWithGithubPrimaryEmail.id
+        'providerUserId': String(vkUser.id),
+        'userId': existingUserWithVkPrimaryEmail.id
       })
-      user = existingUserWithGithubPrimaryEmail
+      user = existingUserWithVkPrimaryEmail
     } else {
       user = await db.transaction(async (tx) => {
         const createdUser = await tx.insert(users).values({
-          username: githubUser.login,
+          username: vkUser.login,
           email: primaryEmail.email,
         }).returning()
         const createdOauthGithub = await tx.insert(userOauths).values({
           'userId': createdUser[0].id,
           'provider': 'github',
-          'providerUserId': String(githubUser.id)
+          'providerUserId': String(vkUser.id)
         })
         return createdUser[0]
       })
     }
-    const providers = (await db.query.userOauths.findMany({ where: eq(userOauths.userId, user.id) })).map(o => o.provider)
 
     const session = await lucia.createSession(user.id, {
       username: user.username,
-      email: user.email,
-      providers
+      email: user.email
     })
     const sessionCookie = lucia.createSessionCookie(session.id)
     cookies.set(sessionCookie.name, sessionCookie.value, {

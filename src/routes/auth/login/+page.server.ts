@@ -11,11 +11,14 @@ const registerSchema = z.object({
   password: z.string().min(3),
 })
 
+export const load = ({ locals }) => {
+  if (locals.user) redirect(302, '/')
+}
+
 export const actions = {
   default: async ({ request, url, cookies }) => {
     const redirectTo = url.searchParams.get('redirect-to')
     const raw = Object.fromEntries((await request.formData()).entries())
-    console.log(request)
     const parsed = registerSchema.safeParse(raw)
 
     if (!parsed.success) return fail(422, { success: false, message: parsed.error.issues[0].message })

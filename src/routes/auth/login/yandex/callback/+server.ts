@@ -1,5 +1,5 @@
 import { OAuth2RequestError } from "arctic"
-import { github, lucia } from "$lib/server/auth"
+import { yandex, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
 import { and, eq } from 'drizzle-orm'
 import { userOauths, users, type UserDb } from '$lib/server/db/schema.js'
@@ -7,7 +7,7 @@ import { userOauths, users, type UserDb } from '$lib/server/db/schema.js'
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
-  const storedState = cookies.get("github_oauth_state") ?? null
+  const storedState = cookies.get("yandex_oauth_state") ?? null
 
   if (!code || !state || !storedState || state !== storedState) {
     return new Response(null, {
@@ -16,17 +16,17 @@ export async function GET({ url, cookies }) {
   }
 
   try {
-    const tokens = await github.validateAuthorizationCode(code)
-    const githubUserResponse = await fetch("https://api.github.com/user", {
+    const tokens = await yandex.validateAuthorizationCode(code)
+    const yandexUserResponse = await fetch("https://login.yandex.ru/info", {
       headers: {
-        Authorization: `Bearer ${tokens.accessToken}`
+        Authorization: `OAuth ${tokens.accessToken}`
       }
     })
-    const githubUser: GitHubUser = await githubUserResponse.json()
-    const existingUserOauthGithub = await db.query.userOauths.findFirst({
+    const yandexUser: YandexUser = await yandexUserResponse.json()
+    const existingUserOauthYandex = await db.query.userOauths.findFirst({
       where: and(
-        eq(userOauths.provider, 'github'),
-        eq(userOauths.providerUserId, String(githubUser.id))
+        eq(userOauths.provider, 'yandex'),
+        eq(userOauths.providerUserId, yandexUser.id)
       ),
       with: {
         'user': {
@@ -38,11 +38,11 @@ export async function GET({ url, cookies }) {
     })
 
     // if user with connected oauth exists -> create new session
-    if (existingUserOauthGithub) {
-      const session = await lucia.createSession(existingUserOauthGithub.userId, {
-        email: existingUserOauthGithub.user.email,
-        username: existingUserOauthGithub.user.username,
-        providers: existingUserOauthGithub.user.oauths.map(o => o.provider)
+    if (existingUserOauthYandex) {
+      const session = await lucia.createSession(existingUserOauthYandex.userId, {
+        email: existingUserOauthYandex.user.email,
+        username: existingUserOauthYandex.user.username,
+        providers: existingUserOauthYandex.user.oauths.map(o => o.provider)
       })
       const sessionCookie = lucia.createSessionCookie(session.id)
       cookies.set(sessionCookie.name, sessionCookie.value, {
@@ -56,38 +56,29 @@ export async function GET({ url, cookies }) {
         }
       })
     }
-
-    const githubEmailResponse = await fetch("https://api.github.com/user/emails", {
-      headers: {
-        Authorization: `Bearer ${tokens.accessToken}`
-      }
-    })
-    const githubEmails: GithubEmail[] = await githubEmailResponse.json()
-    const primaryEmail = githubEmails.find(email => email.primary)
-
-    if (!primaryEmail) return new Response(null, { status: 400 })
+    const primaryEmail = yandexUser.default_email
 
     // if user with email matches github primary email -> merge github oauth with user
     // else create new user with github oauth
     let user: UserDb = null!
-    const existingUserWithGithubPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail.email) })
-    if (existingUserWithGithubPrimaryEmail) {
+    const existingUserWithYandexPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail) })
+    if (existingUserWithYandexPrimaryEmail) {
       db.insert(userOauths).values({
         'provider': 'github',
-        'providerUserId': String(githubUser.id),
-        'userId': existingUserWithGithubPrimaryEmail.id
+        'providerUserId': yandexUser.id,
+        'userId': existingUserWithYandexPrimaryEmail.id
       })
-      user = existingUserWithGithubPrimaryEmail
+      user = existingUserWithYandexPrimaryEmail
     } else {
       user = await db.transaction(async (tx) => {
         const createdUser = await tx.insert(users).values({
-          username: githubUser.login,
-          email: primaryEmail.email,
+          username: yandexUser.login,
+          email: primaryEmail,
         }).returning()
-        const createdOauthGithub = await tx.insert(userOauths).values({
+        const createdOauthYandex = await tx.insert(userOauths).values({
           'userId': createdUser[0].id,
           'provider': 'github',
-          'providerUserId': String(githubUser.id)
+          'providerUserId': String(yandexUser.id)
         })
         return createdUser[0]
       })
@@ -125,16 +116,10 @@ export async function GET({ url, cookies }) {
   }
 }
 
-interface GitHubUser {
-  id: number
+interface YandexUser {
+  id: string
   login: string
-  avatar_url: string
   name: string
-}
-
-interface GithubEmail {
-  email: string
-  primary: boolean
-  verified: boolean
-  visibility: string | null
+  default_email: string
+  emails: string[]
 }

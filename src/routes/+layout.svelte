@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Toaster } from '$lib/components/ui/sonner';
@@ -16,18 +17,22 @@
 		},
 		{
 			title: 'Войти',
-			url: '/user/sign-in'
+			url: '/auth/login'
 		},
 		{
 			title: 'Зарегистрироваться',
-			url: '/user/sign-up'
+			url: '/auth/register'
+		},
+		{
+			title: 'Аккаунт',
+			url: '/account'
 		}
 	];
 
-	async function signOut() {
-		await fetch('/api/user/sign-out');
-		invalidate('app:user');
-	}
+	// async function signOut() {
+	// 	await fetch('/user/sign-out');
+	// 	invalidate('app:user');
+	// }
 </script>
 
 <nav class="container flex justify-center gap-4 bg-slate-50 p-4">
@@ -35,7 +40,7 @@
 		<a href={route.url}>{route.title}</a>
 	{/each}
 	{#if data.user}
-		<Button onclick={signOut}>Выйти</Button>
+		<a href="/auth/logout">Выйти</a>
 	{/if}
 </nav>
 

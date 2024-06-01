@@ -3,10 +3,18 @@ import { text, integer, sqliteTable, foreignKey, type AnySQLiteColumn } from "dr
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull().notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  passwordSalt: text('password_salt').notNull(),
+  username: text('username').notNull().notNull().unique(),
+  githubId: integer('github_id').unique(),
+  passwordHash: text('password_hash'),
   createdAt: text('created_At').notNull().default(sql`CURRENT_TIMESTAMP`),
+})
+
+export const sessions = sqliteTable("sessions", {
+  id: text("id").notNull().primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+  expiresAt: integer("expires_at").notNull()
 })
 
 export const messages = sqliteTable('messages', {

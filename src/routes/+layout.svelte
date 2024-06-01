@@ -12,27 +12,22 @@
 	};
 	const routes: Route[] = [
 		{
-			title: 'Поток',
+			title: 'Flow',
 			url: '/'
 		},
 		{
-			title: 'Войти',
+			title: 'Login',
 			url: '/auth/login'
 		},
 		{
-			title: 'Зарегистрироваться',
+			title: 'Register',
 			url: '/auth/register'
 		},
 		{
-			title: 'Аккаунт',
+			title: 'Account',
 			url: '/account'
 		}
 	];
-
-	// async function signOut() {
-	// 	await fetch('/user/sign-out');
-	// 	invalidate('app:user');
-	// }
 </script>
 
 <nav class="container flex justify-center gap-4 bg-slate-50 p-4">
@@ -40,7 +35,7 @@
 		<a href={route.url}>{route.title}</a>
 	{/each}
 	{#if data.user}
-		<a href="/auth/logout">Выйти</a>
+		<a href="/auth/logout">Logout</a>
 	{/if}
 </nav>
 

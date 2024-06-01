@@ -1,8 +1,8 @@
 import { OAuth2RequestError } from "arctic"
 import { github, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
-import { eq } from 'drizzle-orm'
-import { users } from '$lib/server/db/schema.js'
+import { and, eq } from 'drizzle-orm'
+import { userOauths, users, type UserDb } from '$lib/server/db/schema.js'
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get("code")
@@ -24,42 +24,72 @@ export async function GET({ url, cookies }) {
     })
     const githubUser: GitHubUser = await githubUserResponse.json()
 
-    const existingUser = await db.query.users.findFirst({ where: eq(users.githubId, githubUser.id) })
+    const existingUserOauthGithub = await db.query.userOauths.findFirst({
+      where: and(
+        eq(userOauths.provider, 'github'),
+        eq(userOauths.providerUserId, String(githubUser.id))
+      )
+    })
 
-    if (existingUser) {
-      const session = await lucia.createSession(existingUser.id, {})
+    if (existingUserOauthGithub) {
+      const session = await lucia.createSession(existingUserOauthGithub.userId, {})
       const sessionCookie = lucia.createSessionCookie(session.id)
       cookies.set(sessionCookie.name, sessionCookie.value, {
         path: ".",
         ...sessionCookie.attributes
       })
-    } else {
-      const githubEmailResponse = await fetch("https://api.github.com/user/emails", {
+      return new Response(null, {
+        status: 302,
         headers: {
-          Authorization: `Bearer ${tokens.accessToken}`
+          Location: "/"
         }
       })
-      const githubEmails: GithubEmail[] = await githubEmailResponse.json()
-      const primary = githubEmails.find(email => email.primary)
-
-      if (primary) {
-        const created = await db.insert(users).values({
-          username: githubUser.login,
-          githubId: githubUser.id
-        }).returning()
-
-        const session = await lucia.createSession(created[0].id, {
-          username: created[0].username,
-          githubId: created[0].githubId
-        })
-        const sessionCookie = lucia.createSessionCookie(session.id)
-        cookies.set(sessionCookie.name, sessionCookie.value, {
-          path: ".",
-          ...sessionCookie.attributes
-        })
-      }
-
     }
+
+    const githubEmailResponse = await fetch("https://api.github.com/user/emails", {
+      headers: {
+        Authorization: `Bearer ${tokens.accessToken}`
+      }
+    })
+    const githubEmails: GithubEmail[] = await githubEmailResponse.json()
+    const primaryEmail = githubEmails.find(email => email.primary)
+
+    if (!primaryEmail) return new Response(null, { status: 400 })
+
+    let user: UserDb = null!
+    const existingUserWithGithubPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail.email) })
+    if (existingUserWithGithubPrimaryEmail) {
+      db.insert(userOauths).values({
+        'provider': 'github',
+        'providerUserId': String(githubUser.id),
+        'userId': existingUserWithGithubPrimaryEmail.id
+      })
+      user = existingUserWithGithubPrimaryEmail
+    } else {
+      user = await db.transaction(async (tx) => {
+        const createdUser = await tx.insert(users).values({
+          username: githubUser.login,
+          email: primaryEmail.email,
+        }).returning()
+        const createdOauthGithub = await tx.insert(userOauths).values({
+          'userId': createdUser[0].id,
+          'provider': 'github',
+          'providerUserId': String(githubUser.id)
+        })
+        return createdUser[0]
+      })
+    }
+
+    const session = await lucia.createSession(user.id, {
+      username: user.username,
+      email: user.email
+    })
+    const sessionCookie = lucia.createSessionCookie(session.id)
+    cookies.set(sessionCookie.name, sessionCookie.value, {
+      path: ".",
+      ...sessionCookie.attributes
+    })
+
     return new Response(null, {
       status: 302,
       headers: {

@@ -1,13 +1,14 @@
 import { OAuth2RequestError } from "arctic"
-import { github, lucia } from "$lib/server/auth"
+import { mailru, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
 import { and, eq } from 'drizzle-orm'
 import { oauths, users, type UserDb } from '$lib/server/db/schema.js'
+import { MAILRU_CLIENT_SECRET } from '$env/static/private'
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
-  const storedState = cookies.get("vk_oauth_state") ?? null
+  const storedState = cookies.get("mailru_oauth_state") ?? null
 
   if (!code || !state || !storedState || state !== storedState) {
     return new Response(null, {
@@ -16,25 +17,32 @@ export async function GET({ url, cookies }) {
   }
 
   try {
-    const tokens = await github.validateAuthorizationCode(code)
-    const githubUserResponse = await fetch("https://api.vk.com/method/users.get", {
-      headers: {
-        Authorization: `Bearer ${tokens.accessToken}`
-      }
+    const tokens = await mailru.validateAuthorizationCode(code, {
+      credentials: MAILRU_CLIENT_SECRET
     })
-    const vkUser: GitHubUser = await githubUserResponse.json()
-    console.log(vkUser)
-    return new Response(null, { status: 200 })
-    const existingUserOauthVk = await db.query.userOauths.findFirst({
+    const mailruUserResponse = await fetch(`https://oauth.mail.ru/userinfo?access_token=${tokens.access_token}`)
+    const mailruUser: MailruUser = await mailruUserResponse.json()
+
+    const existingUserOauthMailru = await db.query.userOauths.findFirst({
       where: and(
-        eq(oauths.provider, 'vk'),
-        eq(oauths.providerUserId, String(vkUser.id))
-      )
+        eq(oauths.provider, 'mailru'),
+        eq(oauths.providerUserId, mailruUser.id)
+      ),
+      with: {
+        'user': {
+          'with': {
+            'oauths': true
+          }
+        }
+      }
     })
 
     // if user with connected oauth exists -> create new session
-    if (existingUserOauthVk) {
-      const session = await lucia.createSession(existingUserOauthVk.userId, {})
+    if (existingUserOauthMailru) {
+      const session = await lucia.createSession(existingUserOauthMailru.userId, {
+        email: existingUserOauthMailru.user.email,
+        username: existingUserOauthMailru.user.username,
+      })
       const sessionCookie = lucia.createSessionCookie(session.id)
       cookies.set(sessionCookie.name, sessionCookie.value, {
         path: ".",
@@ -47,38 +55,29 @@ export async function GET({ url, cookies }) {
         }
       })
     }
-
-    const githubEmailResponse = await fetch("https://api.github.com/user/emails", {
-      headers: {
-        Authorization: `Bearer ${tokens.accessToken}`
-      }
-    })
-    const vkEmails: GithubEmail[] = await githubEmailResponse.json()
-    const primaryEmail = vkEmails.find(email => email.primary)
-
-    if (!primaryEmail) return new Response(null, { status: 400 })
+    const primaryEmail = mailruUser.email
 
     // if user with email matches github primary email -> merge github oauth with user
     // else create new user with github oauth
     let user: UserDb = null!
-    const existingUserWithVkPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail.email) })
-    if (existingUserWithVkPrimaryEmail) {
+    const existingUserWithMailruPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail) })
+    if (existingUserWithMailruPrimaryEmail) {
       db.insert(oauths).values({
-        'provider': 'github',
-        'providerUserId': String(vkUser.id),
-        'userId': existingUserWithVkPrimaryEmail.id
+        provider: 'mailru',
+        providerUserId: mailruUser.id,
+        userId: existingUserWithMailruPrimaryEmail.id
       })
-      user = existingUserWithVkPrimaryEmail
+      user = existingUserWithMailruPrimaryEmail
     } else {
       user = await db.transaction(async (tx) => {
         const createdUser = await tx.insert(users).values({
-          username: vkUser.login,
-          email: primaryEmail.email,
+          username: mailruUser.nickname,
+          email: primaryEmail,
         }).returning()
-        const createdOauthGithub = await tx.insert(oauths).values({
-          'userId': createdUser[0].id,
-          'provider': 'github',
-          'providerUserId': String(vkUser.id)
+        const createdOauthYandex = await tx.insert(oauths).values({
+          userId: createdUser[0].id,
+          provider: 'mailru',
+          providerUserId: String(mailruUser.id)
         })
         return createdUser[0]
       })
@@ -86,7 +85,7 @@ export async function GET({ url, cookies }) {
 
     const session = await lucia.createSession(user.id, {
       username: user.username,
-      email: user.email
+      email: user.email,
     })
     const sessionCookie = lucia.createSessionCookie(session.id)
     cookies.set(sessionCookie.name, sessionCookie.value, {
@@ -114,16 +113,10 @@ export async function GET({ url, cookies }) {
   }
 }
 
-interface GitHubUser {
-  id: number
-  login: string
-  avatar_url: string
+interface MailruUser {
+  id: string
+  nickname: string
   name: string
-}
-
-interface GithubEmail {
+  image: string
   email: string
-  primary: boolean
-  verified: boolean
-  visibility: string | null
 }

@@ -32,6 +32,12 @@
 				class="flex items-center justify-center gap-4 rounded-md bg-white p-4 transition-colors hover:bg-slate-200"
 				href="/auth/login/yandex"
 			>
+				<Icon width={70} icon="cib:yandex"></Icon></a
+			>
+			<a
+				class="flex items-center justify-center gap-4 rounded-md bg-white p-4 transition-colors hover:bg-slate-200"
+				href="/auth/login/mailru"
+			>
 				<Icon width={40} icon="ri:vk-fill"></Icon></a
 			>
 		</div>

@@ -1,6 +1,6 @@
 import { lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
-import { userOauths, users } from '$lib/server/db/schema'
+import { oauths, users } from '$lib/server/db/schema'
 import { fail, redirect } from '@sveltejs/kit'
 import { z } from 'zod'
 import { and, eq } from 'drizzle-orm'

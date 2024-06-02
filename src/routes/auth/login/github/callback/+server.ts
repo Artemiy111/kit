@@ -2,12 +2,16 @@ import { OAuth2RequestError } from "arctic"
 import { github, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
 import { and, eq } from 'drizzle-orm'
-import { userOauths, users, type UserDb } from '$lib/server/db/schema.js'
+import { oauths, users, type UserDb } from '$lib/server/db/schema.js'
+import { createUser, getUserByEmail, getUserByOauth } from '$lib/server/repos/user.repo.js'
+import { createOauth } from '$lib/server/repos/oauth.repo.js'
+
+const PROVIDER = 'github'
 
 export async function GET({ url, cookies }) {
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
-  const storedState = cookies.get("github_oauth_state") ?? null
+  const storedState = cookies.get(`${PROVIDER}_oauth_state`) ?? null
 
   if (!code || !state || !storedState || state !== storedState) {
     return new Response(null, {
@@ -23,26 +27,13 @@ export async function GET({ url, cookies }) {
       }
     })
     const githubUser: GitHubUser = await githubUserResponse.json()
-    const existingUserOauthGithub = await db.query.userOauths.findFirst({
-      where: and(
-        eq(userOauths.provider, 'github'),
-        eq(userOauths.providerUserId, String(githubUser.id))
-      ),
-      with: {
-        'user': {
-          'with': {
-            'oauths': true
-          }
-        }
-      }
-    })
+    const existingUserOauthGithub = await getUserByOauth(PROVIDER, String(githubUser.id))
 
     // if user with connected oauth exists -> create new session
     if (existingUserOauthGithub) {
-      const session = await lucia.createSession(existingUserOauthGithub.userId, {
-        email: existingUserOauthGithub.user.email,
-        username: existingUserOauthGithub.user.username,
-        providers: existingUserOauthGithub.user.oauths.map(o => o.provider)
+      const session = await lucia.createSession(existingUserOauthGithub.id, {
+        email: existingUserOauthGithub.email,
+        username: existingUserOauthGithub.username,
       })
       const sessionCookie = lucia.createSessionCookie(session.id)
       cookies.set(sessionCookie.name, sessionCookie.value, {
@@ -67,37 +58,35 @@ export async function GET({ url, cookies }) {
 
     if (!primaryEmail) return new Response(null, { status: 400 })
 
-    // if user with email matches github primary email -> merge github oauth with user
+    // if user with email matches github primary email -> merge github oauth with user by email
     // else create new user with github oauth
     let user: UserDb = null!
-    const existingUserWithGithubPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail.email) })
+
+    const existingUserWithGithubPrimaryEmail = await getUserByEmail(primaryEmail.email)
     if (existingUserWithGithubPrimaryEmail) {
-      db.insert(userOauths).values({
-        'provider': 'github',
-        'providerUserId': String(githubUser.id),
-        'userId': existingUserWithGithubPrimaryEmail.id
+      await createOauth({
+        provider: PROVIDER,
+        providerUserId: String(githubUser.id),
+        userId: existingUserWithGithubPrimaryEmail.id
       })
       user = existingUserWithGithubPrimaryEmail
     } else {
       user = await db.transaction(async (tx) => {
-        const createdUser = await tx.insert(users).values({
+        const createdUser = await createUser({
           username: githubUser.login,
           email: primaryEmail.email,
-        }).returning()
-        const createdOauthGithub = await tx.insert(userOauths).values({
-          'userId': createdUser[0].id,
-          'provider': 'github',
-          'providerUserId': String(githubUser.id)
         })
-        return createdUser[0]
+        await createOauth({
+          userId: createdUser.id,
+          provider: PROVIDER,
+          providerUserId: String(githubUser.id)
+        })
+        return createdUser
       })
     }
-    const providers = (await db.query.userOauths.findMany({ where: eq(userOauths.userId, user.id) })).map(o => o.provider)
-
     const session = await lucia.createSession(user.id, {
       username: user.username,
       email: user.email,
-      providers
     })
     const sessionCookie = lucia.createSessionCookie(session.id)
     cookies.set(sessionCookie.name, sessionCookie.value, {
@@ -112,9 +101,7 @@ export async function GET({ url, cookies }) {
       }
     })
   } catch (e) {
-    // the specific error message depends on the provider
-    if (e instanceof OAuth2RequestError && e.message === "bad_verification_code") {
-      // invalid code
+    if (e instanceof OAuth2RequestError) {
       return new Response(null, {
         status: 400
       })

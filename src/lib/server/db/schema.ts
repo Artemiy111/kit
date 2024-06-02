@@ -10,17 +10,30 @@ export const users = sqliteTable('users', {
 })
 
 export type UserDb = typeof users.$inferSelect
+export type UserDbCreate = typeof users.$inferInsert
+export type UserDbDeep = UserDb & {
+  oauths: OauthDb[]
+}
+export type UserId = UserDb['id']
+export type UserDto = {
+  id: number,
+  username: string,
+  email: string | null,
+  createdAt: string
+  providers: OauthProvider[]
+}
 
-export const userOauths = sqliteTable('user_oauths', {
+export const oauths = sqliteTable('user_oauths', {
   userId: integer('user_id').notNull().references(() => users.id),
-  provider: text('provider', { 'enum': ['github', 'yandex'] }).notNull(),
+  provider: text('provider', { 'enum': ['github', 'yandex', 'mailru'] }).notNull(),
   providerUserId: text('provider_user_id').notNull(),
 }, t => ({
   pk: primaryKey({ 'name': 'pk', 'columns': [t.provider, t.providerUserId], })
 }))
 
-export type UserOauthDb = typeof userOauths.$inferSelect
-export type OauthProvider = UserOauthDb['provider']
+export type OauthDb = typeof oauths.$inferSelect
+export type OauthDbCreate = typeof oauths.$inferSelect
+export type OauthProvider = OauthDb['provider']
 
 export const sessions = sqliteTable("user_sessions", {
   id: text("id").notNull().primaryKey(),
@@ -42,16 +55,17 @@ export const messages = sqliteTable('messages', {
 })
 
 export type MessageDb = typeof messages.$inferSelect
+export type MessageId = MessageDb['id']
 
 
 export const usersRelations = relations(users, ({ many }) => ({
-  oauths: many(userOauths),
+  oauths: many(oauths),
   sessions: many(sessions)
 }))
 
-export const userOauthsRelations = relations(userOauths, ({ one }) => ({
+export const userOauthsRelations = relations(oauths, ({ one }) => ({
   user: one(users, {
-    'fields': [userOauths.userId],
+    'fields': [oauths.userId],
     'references': [users.id]
   })
 }))

@@ -14,6 +14,8 @@ export const GET = async ({ cookies, locals }) => {
   cookies.delete('github_oauth_state', { path: '/' })
   cookies.delete('vk_oauth_state', { path: '/' })
   cookies.delete('yandex_oauth_state', { path: '/' })
+  cookies.delete('mailru_oauth_state', { path: '/' })
+
 
   redirect(302, '/')
 }

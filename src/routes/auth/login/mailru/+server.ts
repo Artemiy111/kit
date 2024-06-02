@@ -1,13 +1,15 @@
 import { redirect } from "@sveltejs/kit"
 import { generateState } from "arctic"
-import { yandex } from "$lib/server/auth"
+import { mailru } from "$lib/server/auth"
 
 export async function GET({ cookies }) {
   const state = generateState()
-  const url = await yandex.createAuthorizationURL(state, {
+  const url = await mailru.createAuthorizationURL({
+    state,
+    scopes: ['userinfo']
   })
 
-  cookies.set("yandex_oauth_state", state, {
+  cookies.set("mailru_oauth_state", state, {
     path: "/",
     secure: import.meta.env.PROD,
     httpOnly: true,

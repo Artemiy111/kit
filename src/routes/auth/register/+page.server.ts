@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit'
 import { db } from '$lib/server/db'
-import { userOauths, users, type UserDb } from '$lib/server/db/schema'
+import { oauths, users, type UserDb } from '$lib/server/db/schema'
 import { lucia } from "$lib/server/auth"
 import { z } from 'zod'
 import { and, eq, isNotNull, isNull } from 'drizzle-orm'
@@ -59,7 +59,7 @@ export const actions = {
     }
 
     const userProviders = (await db.query.userOauths.findMany({
-      where: eq(userOauths.userId, user.id)
+      where: eq(oauths.userId, user.id)
     })).map(o => o.provider)
 
     const session = await lucia.createSession(user.id, {

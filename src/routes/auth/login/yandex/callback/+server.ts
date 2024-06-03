@@ -1,8 +1,9 @@
 import { OAuth2RequestError } from "arctic"
 import { yandex, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
-import { and, eq } from 'drizzle-orm'
 import { oauths, users, type UserDb } from '$lib/server/db/schema.js'
+import { createUser, getUserByEmail, getUserByOauth } from '$lib/server/repos/user.repo.js'
+import { createOauth } from '$lib/server/repos/oauth.repo.js'
 
 const PROVIDER = 'yandex'
 
@@ -25,25 +26,13 @@ export async function GET({ url, cookies }) {
       }
     })
     const yandexUser: YandexUser = await yandexUserResponse.json()
-    const existingUserOauthYandex = await db.query.userOauths.findFirst({
-      where: and(
-        eq(oauths.provider, PROVIDER),
-        eq(oauths.providerUserId, yandexUser.id)
-      ),
-      with: {
-        user: {
-          with: {
-            oauths: true
-          }
-        }
-      }
-    })
+    const existingUserWithOauthProvider = await getUserByOauth(PROVIDER, yandexUser.id)
 
     // if user with connected oauth exists -> create new session
-    if (existingUserOauthYandex) {
-      const session = await lucia.createSession(existingUserOauthYandex.userId, {
-        email: existingUserOauthYandex.user.email,
-        username: existingUserOauthYandex.user.username,
+    if (existingUserWithOauthProvider) {
+      const session = await lucia.createSession(existingUserWithOauthProvider.id, {
+        email: existingUserWithOauthProvider.email,
+        username: existingUserWithOauthProvider.username,
       })
       const sessionCookie = lucia.createSessionCookie(session.id)
       cookies.set(sessionCookie.name, sessionCookie.value, {
@@ -57,31 +46,32 @@ export async function GET({ url, cookies }) {
         }
       })
     }
-    const primaryEmail = yandexUser.default_email
+    const email = yandexUser.default_email
 
     // if user with email matches provider's primary email -> merge provider's oauth with user
     // else create new user with provider's oauth
     let user: UserDb = null!
-    const existingUserWithYandexPrimaryEmail = await db.query.users.findFirst({ where: eq(users.email, primaryEmail) })
-    if (existingUserWithYandexPrimaryEmail) {
-      db.insert(oauths).values({
+    const existingUserWithProviderEmail = await getUserByEmail(email)
+    if (existingUserWithProviderEmail) {
+      await createOauth({
         provider: PROVIDER,
         providerUserId: yandexUser.id,
-        userId: existingUserWithYandexPrimaryEmail.id
+        userId: existingUserWithProviderEmail.id
       })
-      user = existingUserWithYandexPrimaryEmail
+
+      user = existingUserWithProviderEmail
     } else {
-      user = await db.transaction(async (tx) => {
-        const createdUser = await tx.insert(users).values({
+      user = await db.transaction(async () => {
+        const createdUser = await createUser({
           username: yandexUser.login,
-          email: primaryEmail,
-        }).returning()
-        const createdOauthYandex = await tx.insert(oauths).values({
-          userId: createdUser[0].id,
-          provider: PROVIDER,
-          providerUserId: String(yandexUser.id)
+          email: email,
         })
-        return createdUser[0]
+        await createOauth({
+          userId: createdUser.id,
+          provider: PROVIDER,
+          providerUserId: yandexUser.id
+        })
+        return createdUser
       })
     }
 

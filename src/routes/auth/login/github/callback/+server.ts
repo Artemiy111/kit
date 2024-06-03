@@ -1,7 +1,6 @@
 import { OAuth2RequestError } from "arctic"
 import { github, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
-import { and, eq } from 'drizzle-orm'
 import { oauths, users, type UserDb } from '$lib/server/db/schema.js'
 import { createUser, getUserByEmail, getUserByOauth } from '$lib/server/repos/user.repo.js'
 import { createOauth } from '$lib/server/repos/oauth.repo.js'
@@ -27,13 +26,13 @@ export async function GET({ url, cookies }) {
       }
     })
     const githubUser: GitHubUser = await githubUserResponse.json()
-    const existingUserOauthGithub = await getUserByOauth(PROVIDER, String(githubUser.id))
+    const existingUserWithOauthProvider = await getUserByOauth(PROVIDER, String(githubUser.id))
 
     // if user with connected oauth exists -> create new session
-    if (existingUserOauthGithub) {
-      const session = await lucia.createSession(existingUserOauthGithub.id, {
-        email: existingUserOauthGithub.email,
-        username: existingUserOauthGithub.username,
+    if (existingUserWithOauthProvider) {
+      const session = await lucia.createSession(existingUserWithOauthProvider.id, {
+        email: existingUserWithOauthProvider.email,
+        username: existingUserWithOauthProvider.username,
       })
       const sessionCookie = lucia.createSessionCookie(session.id)
       cookies.set(sessionCookie.name, sessionCookie.value, {
@@ -54,27 +53,27 @@ export async function GET({ url, cookies }) {
       }
     })
     const githubEmails: GithubEmail[] = await githubEmailResponse.json()
-    const primaryEmail = githubEmails.find(email => email.primary)
+    const email = githubEmails.find(email => email.primary)
 
-    if (!primaryEmail) return new Response(null, { status: 400 })
+    if (!email) return new Response(null, { status: 400 })
 
     // if user with email matches github primary email -> merge github oauth with user by email
     // else create new user with github oauth
     let user: UserDb = null!
 
-    const existingUserWithGithubPrimaryEmail = await getUserByEmail(primaryEmail.email)
-    if (existingUserWithGithubPrimaryEmail) {
+    const existingUserWithProviderEmail = await getUserByEmail(email.email)
+    if (existingUserWithProviderEmail) {
       await createOauth({
         provider: PROVIDER,
         providerUserId: String(githubUser.id),
-        userId: existingUserWithGithubPrimaryEmail.id
+        userId: existingUserWithProviderEmail.id
       })
-      user = existingUserWithGithubPrimaryEmail
+      user = existingUserWithProviderEmail
     } else {
-      user = await db.transaction(async (tx) => {
+      user = await db.transaction(async () => {
         const createdUser = await createUser({
           username: githubUser.login,
-          email: primaryEmail.email,
+          email: email.email,
         })
         await createOauth({
           userId: createdUser.id,

@@ -1,10 +1,9 @@
 import { OAuth2RequestError } from "arctic"
 import { mailru, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
-import { and, eq } from 'drizzle-orm'
-import { oauths, users, type UserDb } from '$lib/server/db/schema.js'
+import { type UserDb } from '$lib/server/db/schema'
 import { MAILRU_CLIENT_SECRET } from '$env/static/private'
-import { createUser, getUserByEmail, getUserByOauth } from '$lib/server/repos/user.repo.js'
+import { createUser, getUserByEmail, getUserByOauth } from '$lib/server/repos/user.repo'
 import { createOauth } from '$lib/server/repos/oauth.repo'
 
 const PROVIDER = 'mailru'
@@ -49,13 +48,13 @@ export async function GET({ url, cookies }) {
     }
     const email = mailruUser.email
 
-    // if user with email matches github primary email -> merge github oauth with user
-    // else create new user with github oauth
+    // if user with email matches provider's primary email -> merge provider's oauth with user
+    // else create new user with provider's oauth
     let user: UserDb = null!
     const existingUserWithProviderEmail = await getUserByEmail(email)
     if (existingUserWithProviderEmail) {
       await createOauth({
-        provider: 'mailru',
+        provider: PROVIDER,
         providerUserId: mailruUser.id,
         userId: existingUserWithProviderEmail.id
       })
@@ -68,7 +67,7 @@ export async function GET({ url, cookies }) {
         })
         await createOauth({
           userId: createdUser.id,
-          provider: 'mailru',
+          provider: PROVIDER,
           providerUserId: String(mailruUser.id)
         })
         return createdUser

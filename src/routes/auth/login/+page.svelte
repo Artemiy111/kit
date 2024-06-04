@@ -38,7 +38,7 @@
 				class="flex items-center justify-center gap-4 rounded-md bg-white p-4 transition-colors hover:bg-slate-200"
 				href="/auth/login/mailru"
 			>
-				<Icon width={40} icon="ri:vk-fill"></Icon></a
+				<Icon width={35} icon="cib:mail-ru"></Icon></a
 			>
 		</div>
 

@@ -3,7 +3,7 @@ import { text, integer, sqliteTable, foreignKey, type AnySQLiteColumn, primaryKe
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  username: text('username').notNull().notNull(),
+  username: text('username').notNull(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash'),
   createdAt: text('created_At').notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -11,6 +11,9 @@ export const users = sqliteTable('users', {
 
 export type UserDb = typeof users.$inferSelect
 export type UserDbCreate = typeof users.$inferInsert
+export type UserDbUpdate = {
+  email: string
+}
 export type UserDbDeep = UserDb & {
   oauths: OauthDb[]
 }
@@ -23,8 +26,8 @@ export type UserDto = {
   providers: OauthProvider[]
 }
 
-export const oauths = sqliteTable('user_oauths', {
-  userId: integer('user_id').notNull().references(() => users.id),
+export const oauths = sqliteTable('oauths', {
+  userId: integer('user_id').notNull().references(() => users.id, { onUpdate: 'cascade', onDelete: 'cascade' }),
   provider: text('provider', { 'enum': ['github', 'yandex', 'mailru'] }).notNull(),
   providerUserId: text('provider_user_id').notNull(),
 }, t => ({
@@ -35,19 +38,19 @@ export type OauthDb = typeof oauths.$inferSelect
 export type OauthDbCreate = typeof oauths.$inferSelect
 export type OauthProvider = OauthDb['provider']
 
-export const sessions = sqliteTable("user_sessions", {
+export const sessions = sqliteTable("sessions", {
   id: text("id").notNull().primaryKey(),
   userId: integer("user_id")
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onUpdate: 'cascade', onDelete: 'cascade' }),
   expiresAt: integer("expires_at").notNull()
 })
 
 export type SessionDb = typeof sessions.$inferSelect
 
 export const messages = sqliteTable('messages', {
-  parentMessageId: text('parent_message_id').references((): AnySQLiteColumn => messages.id),
-  authorId: integer('author_id').references(() => users.id),
+  parentMessageId: text('parent_message_id').references((): AnySQLiteColumn => messages.id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+  authorId: integer('author_id').references(() => users.id, { onUpdate: 'cascade', onDelete: 'cascade' }),
   id: integer('id').primaryKey({ autoIncrement: true }),
   text: text('text').notNull().unique(),
   createdAt: text('created_At').notNull().default(sql`CURRENT_TIMESTAMP`),

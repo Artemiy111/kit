@@ -1,3 +1,4 @@
+import { userMapper } from '$lib/server/mappers/user.mapper.js'
 import { redirect } from '@sveltejs/kit'
 
 export const load = async ({ parent, url, locals }) => {
@@ -5,6 +6,6 @@ export const load = async ({ parent, url, locals }) => {
   if (!locals.user) redirect(302, `/auth/login?redirect-to=${url.pathname}`)
   return {
     ...parentData,
-    user: parentData.user!
+    user: userMapper.toDto(parentData.user!)
   }
 }

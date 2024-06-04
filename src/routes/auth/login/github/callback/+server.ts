@@ -1,7 +1,7 @@
 import { OAuth2RequestError } from "arctic"
 import { github, lucia } from "$lib/server/auth"
 import { db } from '$lib/server/db'
-import { oauths, users, type UserDb } from '$lib/server/db/schema.js'
+import { type UserDb } from '$lib/server/db/schema.js'
 import { createUser, getUserByEmail, getUserByOauth } from '$lib/server/repos/user.repo.js'
 import { createOauth } from '$lib/server/repos/oauth.repo.js'
 
@@ -57,8 +57,8 @@ export async function GET({ url, cookies }) {
 
     if (!email) return new Response(null, { status: 400 })
 
-    // if user with email matches github primary email -> merge github oauth with user by email
-    // else create new user with github oauth
+    // if user with email matches provider's primary email -> merge provider's oauth with user
+    // else create new user with provider's oauth
     let user: UserDb = null!
 
     const existingUserWithProviderEmail = await getUserByEmail(email.email)

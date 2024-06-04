@@ -12,4 +12,4 @@ class UserMapper {
     }
   }
 }
-const userMapper = new UserMapper()
+export const userMapper = new UserMapper()

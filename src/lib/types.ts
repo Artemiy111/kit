@@ -1,3 +1,12 @@
-import type { OauthProvider, UserId, UserDb, UserDbCreate, UserDbDeep, UserDto, MessageId } from './server/db/schema'
+import type {
+  OauthProvider,
+  UserId,
+  UserDb,
+  UserDbCreate,
+  UserDbDeep,
+  UserDto,
+  MessageId,
+  MessageDbTreeDto,
+} from './server/db/schema'
 
-export type { OauthProvider, UserId, UserDb, UserDbCreate, UserDbDeep, UserDto, MessageId }
+export type { OauthProvider, UserId, UserDb, UserDbCreate, UserDbDeep, UserDto, MessageId, MessageDbTreeDto }

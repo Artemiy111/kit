@@ -71,8 +71,8 @@ export type MessageId = MessageDb['id']
 export type MessageDto = MessageDb
 
 export const messagesToFiles = sqliteTable('messages_to_files', {
-  messageId: integer('message_id').notNull(),
-  fileId: integer('file_id').notNull(),
+  messageId: integer('message_id').notNull().references(() => messages.id),
+  fileId: integer('file_id').notNull().references(() => files.id),
 }, t => ({
   pk: primaryKey({ name: 'pk_message_id_to_file_id', columns: [t.messageId, t.fileId] })
 }))

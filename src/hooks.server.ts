@@ -1,5 +1,4 @@
 import { lucia } from "$lib/server/auth"
-import { userMapper } from '$lib/server/mappers/user.mapper'
 import { getUser } from '$lib/server/repos/user.repo'
 
 export const handle = async ({ event, resolve }) => {

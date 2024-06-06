@@ -1,6 +1,6 @@
 export const load = async ({ cookies, depends, locals }) => {
-  depends('app:user')
-  return {
-    user: locals.user
-  }
+	depends('app:user')
+	return {
+		user: locals.user
+	}
 }

@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { Input } from '$lib/components/ui/input';
-	import * as Avatar from '$lib/components/ui/avatar';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import Label from '$lib/components/ui/label/label.svelte';
-	import { buttonVariants } from '$lib/components/ui/button';
-	import { ImagePlus } from 'lucide-svelte';
-	import { cn } from '$lib/utils';
-	import { type MessageDbTreeDto } from '$lib/types';
-	import { enhance } from '$app/forms';
+	import { Input } from '$lib/components/ui/input'
+	import * as Avatar from '$lib/components/ui/avatar'
+	import Button from '$lib/components/ui/button/button.svelte'
+	import Label from '$lib/components/ui/label/label.svelte'
+	import { buttonVariants } from '$lib/components/ui/button'
+	import { ImagePlus } from 'lucide-svelte'
+	import { cn } from '$lib/utils'
+	import { type MessageDbTreeDto } from '$lib/types'
+	import { enhance } from '$app/forms'
 
-	const { data } = $props();
-	const { messages, user } = data;
+	const { data } = $props()
+	const { messages, user } = data
 
-	let message = $state('');
+	let message = $state('')
 </script>
 
 {#snippet message_box( message: MessageDbTreeDto)}

@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { invalidate } from '$app/navigation';
-	import Button from '$lib/components/ui/button/button.svelte';
-	import { Toaster } from '$lib/components/ui/sonner';
-	import '../app.css';
-	const { children, data } = $props();
-	const { user } = data;
+	import { enhance } from '$app/forms'
+	import { invalidate } from '$app/navigation'
+	import Button from '$lib/components/ui/button/button.svelte'
+	import { Toaster } from '$lib/components/ui/sonner'
+	import '../app.css'
+	const { children, data } = $props()
+	const { user } = data
 
 	type Route = {
-		title: string;
-		url: string;
-	};
+		title: string
+		url: string
+	}
 	const routes: Route[] = $derived(
 		[
 			{
@@ -39,7 +39,7 @@
 				show: !!user
 			}
 		].filter((r) => r.show)
-	);
+	)
 </script>
 
 <nav class="container flex justify-center gap-4 bg-slate-50 p-4">

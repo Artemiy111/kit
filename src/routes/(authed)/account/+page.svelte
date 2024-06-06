@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { goto, invalidate } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
+	import { goto, invalidate } from '$app/navigation'
+	import { Button } from '$lib/components/ui/button'
 
-	const { data } = $props();
-	const user = $derived(data.user);
+	const { data } = $props()
+	const user = $derived(data.user)
 
 	async function deleteAccount() {
 		await fetch(`/account/${user.id}`, {
 			method: 'DELETE'
-		});
-		await goto('/auth/logout');
+		})
+		await goto('/auth/logout')
 	}
 </script>
 

@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { Button, buttonVariants } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { toast } from 'svelte-sonner';
-	import Icon from '@iconify/svelte';
+	import { enhance } from '$app/forms'
+	import { Button, buttonVariants } from '$lib/components/ui/button'
+	import { Input } from '$lib/components/ui/input'
+	import { Label } from '$lib/components/ui/label'
+	import { toast } from 'svelte-sonner'
+	import Icon from '@iconify/svelte'
 
-	const { form } = $props();
+	const { form } = $props()
 
 	$effect(() => {
-		if (!form) return;
-		if (form.success) toast('Вход выполнен');
-		else toast('Не удалось войти в аккаунт');
-	});
+		if (!form) return
+		if (form.success) toast('Вход выполнен')
+		else toast('Не удалось войти в аккаунт')
+	})
 </script>
 
 <main class="container mx-auto flex flex-col items-center justify-center">

@@ -8,7 +8,7 @@ declare global {
 		// interface Error {}
 		interface Locals {
 			user: UserDbDeep | null
-			session: import("lucia").Session | null
+			session: import('lucia').Session | null
 		}
 		// interface PageData {}
 		// interface PageState {}
@@ -16,4 +16,4 @@ declare global {
 	}
 }
 
-export { }
+export {}

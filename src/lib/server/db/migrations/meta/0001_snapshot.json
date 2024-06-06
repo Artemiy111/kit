@@ -1,8 +1,8 @@
 {
 	"version": "6",
 	"dialect": "sqlite",
-	"id": "f7fb7428-626f-4832-8fc7-f00f8fea81a1",
-	"prevId": "00000000-0000-0000-0000-000000000000",
+	"id": "1056de2d-d388-49c8-b06f-8f3f10b155f8",
+	"prevId": "f7fb7428-626f-4832-8fc7-f00f8fea81a1",
 	"tables": {
 		"files": {
 			"name": "files",
@@ -117,7 +117,26 @@
 				}
 			},
 			"indexes": {},
-			"foreignKeys": {},
+			"foreignKeys": {
+				"messages_to_files_message_id_messages_id_fk": {
+					"name": "messages_to_files_message_id_messages_id_fk",
+					"tableFrom": "messages_to_files",
+					"tableTo": "messages",
+					"columnsFrom": ["message_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				},
+				"messages_to_files_file_id_files_id_fk": {
+					"name": "messages_to_files_file_id_files_id_fk",
+					"tableFrom": "messages_to_files",
+					"tableTo": "files",
+					"columnsFrom": ["file_id"],
+					"columnsTo": ["id"],
+					"onDelete": "no action",
+					"onUpdate": "no action"
+				}
+			},
 			"compositePrimaryKeys": {
 				"pk_message_id_to_file_id": {
 					"columns": ["file_id", "message_id"],

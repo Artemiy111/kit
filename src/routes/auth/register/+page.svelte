@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { Button, buttonVariants } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Label } from '$lib/components/ui/label';
-	import { toast } from 'svelte-sonner';
-	const { form, data } = $props();
+	import { enhance } from '$app/forms'
+	import { Button, buttonVariants } from '$lib/components/ui/button'
+	import { Input } from '$lib/components/ui/input'
+	import { Label } from '$lib/components/ui/label'
+	import { toast } from 'svelte-sonner'
+	const { form, data } = $props()
 
 	$effect(() => {
-		if (!form) return;
-		if (form.success) toast('Аккаунт создан');
-		else toast('Ошибка');
-	});
+		if (!form) return
+		if (form.success) toast('Аккаунт создан')
+		else toast('Ошибка')
+	})
 </script>
 
 <main class="container mt-16 flex flex-col">

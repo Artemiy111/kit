@@ -1,4 +1,4 @@
-import { eq, isNull } from 'drizzle-orm'
+import { desc, eq, isNull } from 'drizzle-orm'
 import { db } from '../db'
 import {
 	messages,
@@ -16,7 +16,8 @@ export async function getRootMessages(offset?: number, limit?: number): Promise<
 		offset,
 		limit,
 		where: isNull(messages.parentMessageId),
-		with: { author: true, files: { with: { file: true } } }
+		with: { author: true, files: { with: { file: true } } },
+		orderBy: desc(messages.createdAt)
 	})
 }
 
@@ -28,7 +29,8 @@ export async function getRootMessagesTrees(
 		offset,
 		limit,
 		where: isNull(messages.parentMessageId),
-		columns: { id: true }
+		columns: { id: true },
+		orderBy: desc(messages.createdAt)
 	})
 
 	const trees = await Promise.all(ids.map(async (id) => (await getMessageTree(id.id))!))
@@ -39,7 +41,8 @@ export async function getMessage(id: MessageId) {
 	return (
 		(await db.query.messages.findFirst({
 			where: eq(messages.id, id),
-			with: { author: true, files: { with: { file: true } } }
+			with: { author: true, files: { with: { file: true } } },
+			orderBy: desc(messages.createdAt)
 		})) || null
 	)
 }
@@ -47,7 +50,8 @@ export async function getMessage(id: MessageId) {
 export async function getReplies(id: MessageId): Promise<MessageDbDeep[]> {
 	return await db.query.messages.findMany({
 		where: eq(messages.parentMessageId, id),
-		with: { author: true, files: { with: { file: true } } }
+		with: { author: true, files: { with: { file: true } } },
+		orderBy: desc(messages.createdAt)
 	})
 }
 
@@ -61,7 +65,6 @@ export async function getMessageTree(id: MessageId): Promise<MessageDbTree | nul
 		const rs = await Promise.all(replies.map(async (r) => dfs(r, await getReplies(r.id))))
 		const tree: MessageDbTree = {
 			...message,
-
 			replies: rs
 		}
 		return tree

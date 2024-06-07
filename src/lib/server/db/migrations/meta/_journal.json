@@ -1,20 +1,13 @@
 {
-	"version": "6",
-	"dialect": "sqlite",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "6",
-			"when": 1717612299493,
-			"tag": "0000_broken_stick",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "6",
-			"when": 1717683988204,
-			"tag": "0001_cynical_captain_stacy",
-			"breakpoints": true
-		}
-	]
+  "version": "6",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1717685568247,
+      "tag": "0000_clumsy_hellfire_club",
+      "breakpoints": true
+    }
+  ]
 }

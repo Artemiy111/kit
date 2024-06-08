@@ -35,9 +35,9 @@
 
 <main class="container max-w-[800px]">
 	{#if user}
-		<MessageInput parentMessageId={null} onCreate={createMessage} {user}></MessageInput>
+		<MessageInput classes="mt-8" parentMessageId={null} onCreate={createMessage} {user} />
 	{/if}
-	<div class="mx-auto my-8 grid grid-cols-1 gap-4">
+	<div class="mx-auto my-4 grid grid-cols-1 gap-4">
 		{#if !messages.length}
 			<div class="flex">Здесь пока ничего нет</div>
 		{/if}

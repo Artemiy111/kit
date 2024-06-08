@@ -5,15 +5,18 @@
 	import type { UserDto } from '$lib/types'
 	import { cn } from '$lib/utils'
 	import { ImagePlus } from 'lucide-svelte'
+	import type { HTMLAttributes } from 'svelte/elements'
 
 	let {
 		parentMessageId,
 		user,
-		onCreate
+		onCreate,
+		classes = ''
 	}: {
 		parentMessageId: number | null
 		user: UserDto
 		onCreate: (target: HTMLFormElement) => void
+		classes?: HTMLAttributes<HTMLFormElement>['class']
 	} = $props()
 
 	let message = $state('')
@@ -51,7 +54,7 @@
 	{onsubmit}
 	use:enhance
 	enctype="multipart/form-data"
-	class="mt-8 flex flex-col gap-4"
+	class={cn('flex flex-col gap-4', classes)}
 >
 	{#if images.length}
 		<div

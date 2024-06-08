@@ -88,10 +88,16 @@ export type MessageDbDeep = MessageDb & {
 	author: UserDb
 	files: MessageToFileDbWithFile[]
 }
-export type MessageDbTree = MessageDbDeep & {
-	replies: MessageDbTree[]
+export type MessageTreeDb = MessageDbDeep & {
+	replies: MessageTreeDb[]
 }
-export type MessageDbTreeDto = MessageDbTree
+export type MessageTreeDto = Omit<MessageTreeDb, 'files'> & {
+	files: Array<{
+		messageId: string
+		id: string
+		url: string
+	}>
+}
 export type MessageId = MessageDb['id']
 export type MessageDto = MessageDb
 
@@ -101,7 +107,7 @@ export const messagesToFiles = sqliteTable(
 		messageId: integer('message_id')
 			.notNull()
 			.references(() => messages.id),
-		fileId: integer('file_id')
+		fileId: text('file_id')
 			.notNull()
 			.references(() => files.id)
 	},
@@ -116,14 +122,12 @@ export type MessageToFileDbWithFile = MessageToFileDb & {
 }
 
 export const files = sqliteTable('files', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
-	title: text('title'),
-	url: text('url').notNull()
+	id: text('id').primaryKey().notNull(),
 })
 
 export type FileDb = typeof files.$inferSelect
 export type FileDbCreate = typeof files.$inferInsert
-export type FIleId = FileDb['id']
+export type FileId = FileDb['id']
 
 export const usersRelations = relations(users, ({ many }) => ({
 	oauths: many(oauths),

@@ -5,6 +5,7 @@
 	import type { UserDto } from '$lib/types'
 	import { cn } from '$lib/utils'
 	import { ImagePlus } from 'lucide-svelte'
+	import { tick } from 'svelte'
 	import type { HTMLAttributes } from 'svelte/elements'
 
 	let {
@@ -21,29 +22,39 @@
 
 	let message = $state('')
 	let files: File[] = $state([])
-	let images: string[] = $derived(files.map((file) => URL.createObjectURL(file)))
+	let images: string[] = $derived(files.map((file) => generateURL(file)))
 	let fileInput: HTMLInputElement = $state(null!)
 
 	$effect(() => {
-		fileInput.files = null
+		// fileInput.value = ''
+		const container = new DataTransfer()
+		files.forEach((file) => container.items.add(file))
+		fileInput.files = container.files
+		// files.forEach((file) => (fileInput.files as unknown as File[]).push(file))
 	})
 
-	function onsubmit(event: Event) {
+	function generateURL(file: File) {
+		const fileSrc = URL.createObjectURL(file)
+		setTimeout(() => {
+			URL.revokeObjectURL(fileSrc)
+		}, 1000)
+		return fileSrc
+	}
+
+	async function onsubmit(event: Event) {
 		event.preventDefault()
 		onCreate(event.target as HTMLFormElement)
+		await tick()
+		;(event.target as HTMLFormElement).reset()
+		files = []
 	}
 
 	function handleFileUpload(event: Event) {
 		const newFiles = [...((event.target as HTMLInputElement).files || [])]
 		files = [...files, ...newFiles]
-		newFiles.forEach((file) => {
-			const url = URL.createObjectURL(file)
-			images.push(url)
-		})
 	}
 	function removeFile(index: number) {
-		files = files.splice(index, 1)
-		// images = images.slice(index, 1)
+		files.splice(index, 1)
 	}
 	const id = crypto.randomUUID()
 </script>
@@ -58,11 +69,15 @@
 >
 	{#if images.length}
 		<div
-			class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4 overflow-x-auto rounded-md border-2 border-secondary bg-slate-50 p-4"
+			class="flex h-full max-h-[400px] w-full gap-4 overflow-x-auto rounded-md border-2 border-secondary p-4"
 		>
-			{#each images as imageurl, i (i)}
-				<div class="relative h-[200px] w-[200px]">
-					<button class="absolute right-2 top-2 h-4 w-4" onclick={() => removeFile(i)}>x</button>
+			{#each images as imageurl, i (imageurl)}
+				<div class="group relative min-h-[100px] min-w-[300px] flex-1">
+					<Button
+						variant="destructive"
+						class="absolute right-2 top-2 h-8 w-8 p-0 opacity-100 group-hover:opacity-100"
+						onclick={() => removeFile(i)}>x</Button
+					>
 					<img class="border object-contain" alt="img" src={imageurl} />
 				</div>
 			{/each}
@@ -78,16 +93,16 @@
 		<input
 			bind:this={fileInput}
 			id={`images-upload-${id}`}
-			accept="image/jpg,image/jpg,image/png,image/webp"
+			accept="image/jpg,image/jpeg,image/png,image/webp"
 			type="file"
+			name="images"
 			hidden
 			class="hidden w-16"
 			onchange={handleFileUpload}
 			multiple
 		/>
 		<Input name="text" bind:value={message} placeholder="Start typing..." />
-		<Button type="submit">+</Button>
-		<input name="images" type="hidden" value={images} />
+		<Button type="submit" disabled={!message}>+</Button>
 		<input name="authorId" type="hidden" value={user.id} />
 		<input name="parentMessageId" type="hidden" value={parentMessageId} />
 	</div>

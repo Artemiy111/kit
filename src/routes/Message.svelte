@@ -1,11 +1,10 @@
 <script lang="ts">
 	import * as Avatar from '$lib/components/ui/avatar'
 	import { Button } from '$lib/components/ui/form'
-	import { Input } from '$lib/components/ui/input'
-	import type { MessageDbTreeDto, UserDto } from '$lib/types'
+	import type { MessageTreeDto, UserDto } from '$lib/types'
 	import MessageInput from './MessageInput.svelte'
 
-	let { message, user }: { message: MessageDbTreeDto; user: UserDto | null } = $props()
+	let { message, user }: { message: MessageTreeDto; user: UserDto | null } = $props()
 	let isMe = $derived(message.authorId === user?.id)
 	let isOnReply = $state(false)
 
@@ -13,7 +12,7 @@
 		const timeZoneOffset = new Date().getTimezoneOffset()
 		const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 		const zonedDate = new Date(date.getTime() - timeZoneOffset * 60 * 1000)
-		const formatter = new Intl.DateTimeFormat('ru-RU', {
+		const formatter = new Intl.DateTimeFormat('en-US', {
 			month: 'long',
 			day: 'numeric',
 			hour: '2-digit',
@@ -37,10 +36,23 @@
 				</span>
 				<span>{formatDate(new Date(message.createdAt))}</span>
 			</div>
-			<p>
+			<span>
 				{message.text}
-			</p>
+			</span>
+
+			{#if message.files.length}
+				<div class="grid grid-cols-1 gap-4">
+					{#each message.files as file (file)}
+						<img
+							class="h-full max-h-[50vh] w-full rounded-md object-contain"
+							src={file.url}
+							alt="img"
+						/>
+					{/each}
+				</div>
+			{/if}
 		</div>
+
 		{#if user}
 			<Button
 				variant="ghost"
@@ -56,6 +68,7 @@
 			<MessageInput {user} classes="mb-2 mr-3" parentMessageId={message.id} onCreate={() => {}}
 			></MessageInput>
 		{/if}
+
 		{#if message.replies.length}
 			<div class="flex flex-col gap-4">
 				{#each message.replies as reply}

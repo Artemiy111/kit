@@ -6,7 +6,7 @@ import type {
 	UserDbDeep,
 	UserDto,
 	MessageId,
-	MessageDbTreeDto
+	MessageTreeDto
 } from './server/db/schema'
 
 export type {
@@ -17,5 +17,5 @@ export type {
 	UserDbDeep,
 	UserDto,
 	MessageId,
-	MessageDbTreeDto
+	MessageTreeDto
 }

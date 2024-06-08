@@ -1,6 +1,7 @@
-export const load = async ({ cookies, depends, locals }) => {
-	depends('app:user')
+import { userMapper } from '$lib/server/mappers/user.mapper'
+
+export const load = async ({ cookies, locals }) => {
 	return {
-		user: locals.user
+		user: locals.user === null ? null : userMapper.toDto(locals.user),
 	}
 }

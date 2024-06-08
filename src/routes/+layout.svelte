@@ -1,11 +1,8 @@
 <script lang="ts">
-	import { enhance } from '$app/forms'
-	import { invalidate } from '$app/navigation'
-	import Button from '$lib/components/ui/button/button.svelte'
 	import { Toaster } from '$lib/components/ui/sonner'
 	import '../app.css'
 	const { children, data } = $props()
-	const { user } = data
+	let { user } = data
 
 	type Route = {
 		title: string

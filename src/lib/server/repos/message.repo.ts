@@ -4,10 +4,10 @@ import {
 	messages,
 	type MessageDb,
 	type MessageDbCreate,
-	type MessageDbTree,
+	type MessageTreeDb,
 	type MessageDbDeep,
 	type MessageId,
-	type FIleId,
+	type FileId,
 	messagesToFiles
 } from '../db/schema'
 
@@ -24,7 +24,7 @@ export async function getRootMessages(offset?: number, limit?: number): Promise<
 export async function getRootMessagesTrees(
 	offset?: number,
 	limit?: number
-): Promise<MessageDbTree[]> {
+): Promise<MessageTreeDb[]> {
 	const ids = await db.query.messages.findMany({
 		offset,
 		limit,
@@ -55,15 +55,15 @@ export async function getReplies(id: MessageId): Promise<MessageDbDeep[]> {
 	})
 }
 
-export async function getMessageTree(id: MessageId): Promise<MessageDbTree | null> {
+export async function getMessageTree(id: MessageId): Promise<MessageTreeDb | null> {
 	const message = await getMessage(id)
 	if (!message) return null
 
 	const replies = await getReplies(id)
 
-	const dfs = async (message: MessageDbDeep, replies: MessageDbDeep[]): Promise<MessageDbTree> => {
+	const dfs = async (message: MessageDbDeep, replies: MessageDbDeep[]): Promise<MessageTreeDb> => {
 		const rs = await Promise.all(replies.map(async (r) => dfs(r, await getReplies(r.id))))
-		const tree: MessageDbTree = {
+		const tree: MessageTreeDb = {
 			...message,
 			replies: rs
 		}
@@ -77,6 +77,6 @@ export async function createMessage(create: MessageDbCreate) {
 	return (await db.insert(messages).values(create).returning())[0]
 }
 
-export async function addFileToMessage(messageId: MessageId, fileId: FIleId) {
+export async function addFileToMessage(messageId: MessageId, fileId: FileId) {
 	return (await db.insert(messagesToFiles).values({ messageId, fileId }).returning())[0]
 }

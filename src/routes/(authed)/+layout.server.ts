@@ -6,6 +6,6 @@ export const load = async ({ parent, url, locals }) => {
 	if (!locals.user) redirect(302, `/auth/login?redirect-to=${url.pathname}`)
 	return {
 		...parentData,
-		user: userMapper.toDto(parentData.user!)
+		user: parentData.user!
 	}
 }

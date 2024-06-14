@@ -23,13 +23,13 @@
 	}
 </script>
 
-<div class="flex flex-col rounded-md border pb-4">
+<div class="flex flex-col rounded-md border">
 	<div class="group relative flex gap-4 p-4">
 		<Avatar.Root>
 			<Avatar.Image src="https://github.com/shadcn.png" alt="shadcn" />
 			<Avatar.Fallback></Avatar.Fallback>
 		</Avatar.Root>
-		<div class="">
+		<div class="space-y-2">
 			<div class="flex gap-4">
 				<span class="font-bold {isMe ? 'text-blue-500' : 'text-black'}">
 					{message.author.username}
@@ -56,7 +56,7 @@
 		{#if user}
 			<Button
 				variant="ghost"
-				class="absolute right-2 top-2 cursor-pointer opacity-0 transition-all duration-500 group-hover:opacity-100"
+				class="absolute right-4 top-4 cursor-pointer opacity-0 transition-all duration-500 group-hover:opacity-100"
 				onclick={() => (isOnReply = !isOnReply)}
 			>
 				Reply

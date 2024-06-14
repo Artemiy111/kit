@@ -11,8 +11,16 @@ export function getFileUrl(id: FileId) {
 }
 
 export async function createFile(file: File) {
-	const id = crypto.randomUUID()
-	await s3.send(new PutObjectCommand({ Bucket: BUCKET_NAME, Key: id, Body: await file.arrayBuffer() }))
+	const ext = file.name.split('.').at(-1)
+	const id = crypto.randomUUID() + '.' + ext
+	const mimeType = `image/${ext}`
+
+	await s3.send(new PutObjectCommand({
+		Bucket: BUCKET_NAME,
+		Key: id,
+		Body: await file.arrayBuffer(),
+		ContentType: mimeType
+	}))
 
 	return (await db.insert(files).values({ id }).returning())[0]
 }

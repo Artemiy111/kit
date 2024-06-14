@@ -30,7 +30,6 @@ export const actions = {
 			return fail(400, { form })
 		}
 		const data = form.data
-		console.log(data)
 		const createdInBucket = await Promise.all(data.images.map(async (file) => await createFile(file)))
 
 		const message = await createMessage({

@@ -23,7 +23,6 @@ export async function GET({ url, cookies }) {
 			}
 		})
 		const vkUser: GitHubUser = await githubUserResponse.json()
-		console.log(vkUser)
 		return new Response(null, { status: 200 })
 		const existingUserOauthVk = await db.query.userOauths.findFirst({
 			where: and(eq(oauths.provider, 'vk'), eq(oauths.providerUserId, String(vkUser.id)))

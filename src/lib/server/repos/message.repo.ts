@@ -16,7 +16,7 @@ export async function getRootMessages(offset?: number, limit?: number): Promise<
 		offset,
 		limit,
 		where: isNull(messages.parentMessageId),
-		with: { author: true, files: { with: { file: true } } },
+		with: { author: true, files: { with: { file: true } }, likes: true },
 		orderBy: desc(messages.createdAt)
 	})
 }
@@ -41,7 +41,7 @@ export async function getMessage(id: MessageId) {
 	return (
 		(await db.query.messages.findFirst({
 			where: eq(messages.id, id),
-			with: { author: true, files: { with: { file: true } } },
+			with: { author: true, files: { with: { file: true } }, likes: true },
 			orderBy: desc(messages.createdAt)
 		})) || null
 	)
@@ -50,7 +50,7 @@ export async function getMessage(id: MessageId) {
 export async function getReplies(id: MessageId): Promise<MessageDbDeep[]> {
 	return await db.query.messages.findMany({
 		where: eq(messages.parentMessageId, id),
-		with: { author: true, files: { with: { file: true } } },
+		with: { author: true, files: { with: { file: true } }, likes: true },
 		orderBy: desc(messages.createdAt)
 	})
 }

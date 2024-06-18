@@ -87,13 +87,18 @@ export type MessageDbCreate = typeof messages.$inferInsert
 export type MessageDbDeep = MessageDb & {
 	author: UserDb
 	files: MessageToFileDbWithFile[]
+	likes: LikeDb[]
 }
 export type MessageTreeDb = MessageDbDeep & {
 	replies: MessageTreeDb[]
 }
-export type MessageTreeDto = Omit<MessageTreeDb, 'files'> & {
+export type MessageTreeDto = Omit<MessageTreeDb, 'author' | 'files'> & {
+	author: {
+		id: UserId
+		username: string
+	}
 	files: Array<{
-		messageId: string
+		messageId: MessageId
 		id: string
 		url: string
 	}>
@@ -121,6 +126,15 @@ export type MessageToFileDbWithFile = MessageToFileDb & {
 	file: FileDb
 }
 
+export const likes = sqliteTable('likes', {
+	userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+	messageId: integer('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' })
+}, (t) => ({
+	pk: primaryKey({ name: 'pk_likes', columns: [t.userId, t.messageId] })
+}))
+
+export type LikeDb = typeof likes.$inferSelect
+
 export const files = sqliteTable('files', {
 	id: text('id').primaryKey().notNull(),
 })
@@ -131,7 +145,9 @@ export type FileId = FileDb['id']
 
 export const usersRelations = relations(users, ({ many }) => ({
 	oauths: many(oauths),
-	sessions: many(sessions)
+	sessions: many(sessions),
+	messages: many(messages),
+	likes: many(likes),
 }))
 
 export const userOauthsRelations = relations(oauths, ({ one }) => ({
@@ -158,7 +174,19 @@ export const messagesRelations = relations(messages, ({ one, many }) => ({
 		references: [messages.id]
 	}),
 	replies: many(messages),
+	likes: many(likes),
 	files: many(messagesToFiles)
+}))
+
+export const likesRelations = relations(likes, ({ one, many }) => ({
+	user: one(users, {
+		fields: [likes.userId],
+		references: [users.id]
+	}),
+	message: one(messages, {
+		fields: [likes.messageId],
+		references: [messages.id]
+	})
 }))
 
 export const messagesToFilesRelations = relations(messagesToFiles, ({ one }) => ({

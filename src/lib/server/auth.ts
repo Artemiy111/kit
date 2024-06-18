@@ -1,7 +1,7 @@
-import { Lucia } from 'lucia'
+import { Lucia, type Session, type User } from 'lucia'
 import { DrizzleSQLiteAdapter } from '@lucia-auth/adapter-drizzle'
 import { db } from './db'
-import { users, sessions, type OauthProvider, type UserDb } from './db/schema'
+import { users, sessions, type OauthProvider, type UserDb, type UserDbDeep } from './db/schema'
 import { dev } from '$app/environment'
 import { GitHub, Google, VK, Yandex } from 'arctic'
 import {
@@ -16,6 +16,7 @@ import {
 	MAILRU_CLIENT_SECRET
 } from '$env/static/private'
 import { OAuth2Client } from 'oslo/oauth2'
+import { error } from '@sveltejs/kit'
 
 export const github = new GitHub(GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET)
 // const google = new Google(clientId, clientSecret, redirectURI)
@@ -30,8 +31,8 @@ export const mailru = new OAuth2Client(
 	'https://oauth.mail.ru/login',
 	'https://oauth.mail.ru/token',
 	{
-		// redirectURI: `${HOST}/auth/login/mailru/callback/`
-		redirectURI: 'http://localhost:5173/auth/login/mailru/callback'
+		redirectURI: `${HOST}/auth/login/mailru/callback`
+		// redirectURI: 'http://localhost:5173/auth/login/mailru/callback'
 		// redirectURI: 'https://bit.ly/3wZlC9e'
 		// redirectURI: 'https://artistick.tech/mailru/'
 	}
@@ -60,5 +61,14 @@ declare module 'lucia' {
 		DatabaseUserAttributes: DatabaseUserAttributes
 	}
 
-	interface DatabaseUserAttributes extends UserDb {}
+	interface DatabaseUserAttributes extends UserDb { }
 }
+
+export function assertAuthenticated(locals: App.Locals): { session: Session, user: UserDbDeep } {
+	if (!locals.session || !locals.user) error(401, { message: 'Not authenticated' })
+
+	return {
+		session: locals.session,
+		user: locals.user
+	}
+} 

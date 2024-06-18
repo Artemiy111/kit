@@ -59,7 +59,7 @@ export const actions = {
 		}
 
 		const userProviders = (
-			await db.query.userOauths.findMany({
+			await db.query.oauths.findMany({
 				where: eq(oauths.userId, user.id)
 			})
 		).map((o) => o.provider)

@@ -103,7 +103,6 @@
 		/>
 		<Input name="text" bind:value={message} placeholder="Start typing..." />
 		<Button type="submit" disabled={!message}>+</Button>
-		<input name="authorId" type="hidden" value={user.id} />
 		<input name="parentMessageId" type="hidden" value={parentMessageId} />
 	</div>
 </form>

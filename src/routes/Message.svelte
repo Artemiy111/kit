@@ -2,7 +2,9 @@
 	import * as Avatar from '$lib/components/ui/avatar'
 	import { Button } from '$lib/components/ui/form'
 	import type { MessageTreeDto, UserDto } from '$lib/types'
+	import { Heart } from 'lucide-svelte'
 	import MessageInput from './MessageInput.svelte'
+	import { cn } from '$lib/utils'
 
 	let { message, user }: { message: MessageTreeDto; user: UserDto | null } = $props()
 	let isMe = $derived(message.authorId === user?.id)
@@ -54,13 +56,30 @@
 		</div>
 
 		{#if user}
-			<Button
-				variant="ghost"
-				class="absolute right-4 top-4 cursor-pointer opacity-0 transition-all duration-500 group-hover:opacity-100"
-				onclick={() => (isOnReply = !isOnReply)}
-			>
-				Reply
-			</Button>
+			<div class="absolute right-4 top-4 flex items-center gap-4">
+				<form
+					action="?/toggle-like"
+					method="post"
+					enctype="multipart/form-data"
+					class="flex items-center"
+				>
+					<input name="messageId" type="hidden" value={message.id} />
+					<button type="submit"
+						><Heart
+							class={cn(message.likes.find((l) => l.userId === user.id))
+								? 'text-red-500'
+								: 'text-black'}
+						/></button
+					>
+				</form>
+				<Button
+					variant="ghost"
+					class=" cursor-pointer opacity-0 transition-all duration-500 group-hover:opacity-100"
+					onclick={() => (isOnReply = !isOnReply)}
+				>
+					Reply
+				</Button>
+			</div>
 		{/if}
 	</div>
 	<div class="flex w-full flex-col gap-1 pl-4 pr-1">

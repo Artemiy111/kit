@@ -8,10 +8,11 @@ import { createOauth } from '$lib/server/repos/oauth.repo'
 
 const PROVIDER = 'mailru'
 
-export async function GET({ url, cookies }) {
+export async function GET({ url, cookies, locals }) {
 	const code = url.searchParams.get('code')
 	const state = url.searchParams.get('state')
 	const storedState = cookies.get(`${PROVIDER}_oauth_state`) ?? null
+	const { user: currentUser } = locals
 
 	if (!code || !state || !storedState || state !== storedState) {
 		return new Response(null, {
@@ -50,11 +51,19 @@ export async function GET({ url, cookies }) {
 		}
 		const email = mailruUser.email
 
+		// if current user is logged in -> add provider to current user
 		// if user with email matches provider's primary email -> merge provider's oauth with user
 		// else create new user with provider's oauth
 		let user: UserDb = null!
 		const existingUserWithProviderEmail = await getUserByEmail(email)
-		if (existingUserWithProviderEmail) {
+		if (currentUser) {
+			await createOauth({
+				provider: PROVIDER,
+				providerUserId: mailruUser.id,
+				userId: currentUser.id
+			})
+			user = currentUser
+		} else if (existingUserWithProviderEmail) {
 			await createOauth({
 				provider: PROVIDER,
 				providerUserId: mailruUser.id,

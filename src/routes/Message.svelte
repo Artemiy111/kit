@@ -5,6 +5,7 @@
 	import { Heart } from 'lucide-svelte'
 	import MessageInput from './MessageInput.svelte'
 	import { cn } from '$lib/utils'
+	import { enhance } from '$app/forms'
 
 	let { message, user }: { message: MessageTreeDto; user: UserDto | null } = $props()
 	let isMe = $derived(message.authorId === user?.id)
@@ -58,6 +59,7 @@
 		{#if user}
 			<div class="absolute right-4 top-4 flex items-center gap-4">
 				<form
+					use:enhance
 					action="?/toggle-like"
 					method="post"
 					enctype="multipart/form-data"

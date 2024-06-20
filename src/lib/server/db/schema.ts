@@ -5,7 +5,8 @@ import {
 	sqliteTable,
 	foreignKey,
 	type AnySQLiteColumn,
-	primaryKey
+	primaryKey,
+	blob
 } from 'drizzle-orm/sqlite-core'
 
 export const users = sqliteTable('users', {
@@ -13,6 +14,7 @@ export const users = sqliteTable('users', {
 	username: text('username').notNull(),
 	email: text('email').notNull().unique(),
 	passwordHash: text('password_hash'),
+	totp: blob('totp', { mode: 'buffer' }),
 	createdAt: text('created_At')
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`)
@@ -33,6 +35,7 @@ export type UserDto = {
 	email: string | null
 	createdAt: string
 	providers: OauthProvider[]
+	totp: boolean
 }
 
 export const oauths = sqliteTable(
@@ -111,10 +114,10 @@ export const messagesToFiles = sqliteTable(
 	{
 		messageId: integer('message_id')
 			.notNull()
-			.references(() => messages.id),
+			.references(() => messages.id, { onDelete: 'cascade' }),
 		fileId: text('file_id')
 			.notNull()
-			.references(() => files.id)
+			.references(() => files.id, { onDelete: 'cascade' })
 	},
 	(t) => ({
 		pk: primaryKey({ name: 'pk_message_id_to_file_id', columns: [t.messageId, t.fileId] })

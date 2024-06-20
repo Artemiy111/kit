@@ -7,7 +7,8 @@ class UserMapper {
 			email: db.email,
 			createdAt: db.createdAt,
 			username: db.username,
-			providers: db.oauths.map((o) => o.provider)
+			providers: db.oauths.map((o) => o.provider),
+			totp: !!db.totp
 		}
 	}
 }

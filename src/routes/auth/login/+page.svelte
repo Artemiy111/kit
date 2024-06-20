@@ -10,7 +10,7 @@
 
 	$effect(() => {
 		if (!form) return
-		if (form.success) toast('Вход выполнен')
+		if (form.form.valid) toast('Вход выполнен')
 		else toast('Не удалось войти в аккаунт')
 	})
 </script>
@@ -51,9 +51,9 @@
 			<Input name="password" id="password" type="password" required />
 		</div>
 
-		{#if form?.message}
+		{#if form?.form.errors}
 			<p class="col-span-2 rounded-md bg-red-100 p-2 text-red-500">
-				{form.message}
+				{form.form.errors}
 			</p>
 		{/if}
 

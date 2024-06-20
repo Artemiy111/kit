@@ -4,9 +4,11 @@ import { oauths, users } from '$lib/server/db/schema'
 import { fail, redirect } from '@sveltejs/kit'
 import { z } from 'zod'
 import { and, eq } from 'drizzle-orm'
-import { verifySync } from '@node-rs/argon2'
+import { Argon2id } from 'oslo/password'
+import { superValidate } from 'sveltekit-superforms'
+import { zod } from 'sveltekit-superforms/adapters'
 
-const registerSchema = z.object({
+const loginSchema = z.object({
 	email: z.string().email(),
 	password: z.string().min(3)
 })
@@ -18,20 +20,26 @@ export const load = ({ locals }) => {
 export const actions = {
 	default: async ({ request, url, cookies }) => {
 		const redirectTo = url.searchParams.get('redirect-to')
-		const raw = Object.fromEntries((await request.formData()).entries())
-		const parsed = registerSchema.safeParse(raw)
+		const form = await superValidate(request, zod(loginSchema))
+		if (!form.valid) return fail(400, { form })
 
-		if (!parsed.success)
-			return fail(422, { success: false, message: parsed.error.issues[0].message })
-		const data = parsed.data
+		const { data } = form
 
 		const existing = await db.query.users.findFirst({ where: eq(users.email, data.email) })
 		if (!existing || existing.passwordHash === null)
-			return fail(422, { success: false, message: 'Email or password is wrong' })
+			return fail(400, { form })
 
-		const isValidPassword = verifySync(existing.passwordHash!, data.password)
+		const isValidPassword = await new Argon2id().verify(existing.passwordHash, data.password)
 		if (!isValidPassword)
-			return fail(422, { success: false, message: 'Email or password is wrong' })
+			return fail(400, { form })
+
+		if (existing.totp) {
+			cookies.set('user_id_need_totp', existing.id.toString(), {
+				path: '/',
+				maxAge: 5 * 60
+			})
+			redirect(302, '/auth/totp')
+		}
 
 		const session = await lucia.createSession(existing.id, { username: existing.username })
 		const sessionCookie = lucia.createSessionCookie(session.id)

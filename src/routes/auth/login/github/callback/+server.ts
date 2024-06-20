@@ -7,10 +7,11 @@ import { createOauth } from '$lib/server/repos/oauth.repo.js'
 
 const PROVIDER = 'github'
 
-export async function GET({ url, cookies }) {
+export async function GET({ url, cookies, locals }) {
 	const code = url.searchParams.get('code')
 	const state = url.searchParams.get('state')
 	const storedState = cookies.get(`${PROVIDER}_oauth_state`) ?? null
+	const { user: currentUser } = locals
 
 	if (!code || !state || !storedState || state !== storedState) {
 		return new Response(null, {
@@ -57,12 +58,21 @@ export async function GET({ url, cookies }) {
 
 		if (!email) return new Response(null, { status: 400 })
 
-		// if user with email matches provider's primary email -> merge provider's oauth with user
+		// if current user is logged in -> add provider to current user
+		// else if user with email matches provider's primary email -> merge provider's oauth with user
 		// else create new user with provider's oauth
 		let user: UserDb = null!
 
 		const existingUserWithProviderEmail = await getUserByEmail(email.email)
-		if (existingUserWithProviderEmail) {
+		if (currentUser) {
+			await createOauth({
+				provider: PROVIDER,
+				providerUserId: String(githubUser.id),
+				userId: currentUser.id
+			})
+			user = currentUser
+		}
+		else if (existingUserWithProviderEmail) {
 			await createOauth({
 				provider: PROVIDER,
 				providerUserId: String(githubUser.id),
